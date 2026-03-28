@@ -1,0 +1,707 @@
+/* ===== CSS 全域設計語言：CSS 自定義變數（Design Tokens）=====
+   統一管理所有顏色、圓角與棋格大小，方便日後換主題只需修改此處 */
+:root {
+  /* 背景層次色：深色宇宙風格 */
+  --color-bg:           #1a1a2e; /* 最底層頁面背景 */
+  --color-surface:      #16213e; /* 卡片、面板表面色 */
+  --color-primary:      #0f3460; /* 輸入框、棋格底色 */
+
+  /* 強調色 */
+  --color-accent:       #e94560; /* 主要按鈕、X 棋子色（紅） */
+  --color-x:            #e94560; /* X 玩家專屬色 */
+  --color-o:            #00d4ff; /* O 玩家專屬色（青藍）*/
+  --color-win-highlight:#ffd700; /* 獲勝格子高亮（金色）*/
+
+  /* 棋格互動色 */
+  --color-cell-bg:      #0f3460; /* 棋格預設背景 */
+  --color-cell-hover:   #1a4a8a; /* 棋格懸停背景 */
+
+  /* 文字色 */
+  --color-text:         #eaeaea; /* 主要文字（接近白） */
+  --color-text-dim:     #a0a0b0; /* 次要文字（灰） */
+
+  /* 共用圓角半徑 */
+  --border-radius: 12px;
+
+  /* 棋格尺寸：響應式，手機最小 80px，桌機最大 120px */
+  --cell-size: clamp(80px, 18vw, 120px);
+}
+
+/* ===== 全域重設（CSS Reset）=====
+   消除瀏覽器預設 margin/padding，統一 box-sizing 以方便計算尺寸 */
+*, *::before, *::after {
+  box-sizing: border-box; /* 讓 padding/border 計入元素寬高，避免溢出 */
+  margin: 0;
+  padding: 0;
+}
+
+/* ===== body：Flexbox 全頁置中 =====
+   將所有 .screen 子元素在視窗中水平、垂直置中
+   min-height: 100dvh 確保在手機上也填滿螢幕高度（dvh 考量網址列）*/
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column; /* 讓 footer 能被推到最底 */
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== 畫面容器（.screen）=====
+   每個「畫面」（暱稱、大廳、等待、遊戲）都套用此 class。
+   使用 Flexbox 讓內容在該畫面內置中。
+   JS 透過切換 .hidden class 來控制哪個畫面可見。*/
+.screen {
+  width: 100%;
+  flex: 1; /* 佔滿 body flex 剩餘空間，使內容置中 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* .hidden：完全從版面流中移除，比 visibility:hidden 更徹底
+   !important 確保不被其他規則覆蓋 */
+.hidden { display: none !important; }
+
+/* ===== 大廳卡片（暱稱輸入 / 等待畫面共用）=====
+   圓角卡片容器，使用深色表面色與輕微陰影產生浮起感 */
+.lobby-card {
+  background: var(--color-surface);
+  border: 1px solid #1e4d8c;       /* 細藍色邊框增加層次 */
+  border-radius: 20px;
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 380px;                 /* 限制最大寬度，保持卡片緊湊 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); /* 深色陰影加深浮起感 */
+}
+
+/* ===== 遊戲標題（h1.title）=====
+   使用 CSS 漸層文字（X 紅 → O 藍）呈現遊戲品牌感
+   clamp() 讓字型在手機~桌機間平滑縮放 */
+.title {
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, var(--color-x), var(--color-o));
+  -webkit-background-clip: text;    /* Safari/Chrome 漸層文字前綴 */
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 遊戲副標題（線上多人對奕）*/
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-dim);
+  margin-top: -12px; /* 往上收緊，與標題保持視覺近距 */
+}
+
+/* ===== 大廳操作區 ===== */
+.lobby-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ===== 模式選擇畫面（screenMode）=====
+   兩欄 Grid 排列：左 AI 簡單、右 AI 困難，下方線上模式橫跨全寬 */
+.mode-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 左右兩欄等寬 */
+  gap: 14px;
+}
+
+/* 模式選擇按鈕：深色卡片風格，懸停有浮起效果 */
+.btn-mode {
+  background: var(--color-primary);
+  border: 2px solid #1e4d8c;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column; /* 圖示在上，文字在下 */
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px 12px;
+  transition: border-color 0.2s ease, background-color 0.2s ease,
+              transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+/* 懸停：邊框變青藍、整個按鈕上浮 3px */
+.btn-mode:hover {
+  background: var(--color-cell-hover);
+  border-color: var(--color-o);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.2);
+}
+/* 焦點（鍵盤）：與懸停相同視覺反饋 */
+.btn-mode:focus-visible {
+  outline: 3px solid var(--color-o);
+  outline-offset: 2px;
+  transform: translateY(-3px);
+}
+/* 按下：回位 */
+.btn-mode:active { transform: translateY(-1px); }
+
+/* 模式圖示（大型 emoji） */
+.mode-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+/* 模式名稱（粗體，主要文字） */
+.mode-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* 模式說明（小字，次要文字） */
+.mode-desc {
+  font-size: 0.78rem;
+  color: var(--color-text-dim);
+}
+
+/* 線上多人按鈕：橫跨兩欄，改為橫向排列更顯眼 */
+.btn-mode-online {
+  grid-column: span 2; /* 佔滿整行 */
+  flex-direction: row; /* 圖示與文字水平排列 */
+  gap: 12px;
+  padding: 18px 24px;
+  border-color: rgba(233, 69, 96, 0.4); /* 紅色調邊框與 AI 按鈕作視覺區分 */
+}
+.btn-mode-online:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 6px 20px rgba(233, 69, 96, 0.2);
+}
+.btn-mode-online .mode-icon { font-size: 1.8rem; }
+
+
+
+/* ===== 暱稱輸入表單 ===== */
+.name-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 各表單元素間距 */
+}
+
+/* 表單標籤文字（「輸入你的暱稱」）*/
+.name-label {
+  font-size: 0.9rem;
+  color: var(--color-text-dim);
+}
+
+/* 暱稱文字輸入框 */
+.name-input {
+  background: var(--color-primary); /* 與頁面背景區分的深藍底色 */
+  border: 2px solid #1e4d8c;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  padding: 12px 16px;
+  transition: border-color 0.2s; /* 焦點時邊框顏色平滑過渡 */
+  width: 100%;
+}
+/* 焦點狀態：邊框變亮藍提示使用者 */
+.name-input:focus { outline: none; border-color: var(--color-o); }
+/* placeholder 使用更淡的灰色 */
+.name-input::placeholder { color: #606080; }
+
+/* ===== 公開大廳容器 =====
+   比 .lobby-card 更寬（max-width: 560px），用來容納房間列表 */
+.public-lobby {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px 16px;
+}
+
+/* 大廳頂部列：左側標題+暱稱、右側「建立房間」按鈕 */
+.lobby-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* 標題靠左、按鈕靠右 */
+  gap: 12px;
+}
+
+/* 左側：標題與暱稱 chip 水平排列 */
+.lobby-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* 手機螢幕窄時自動換行 */
+}
+
+/* 大廳標題（漸層文字，複用 .title 設計語言）*/
+.lobby-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--color-x), var(--color-o));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 玩家暱稱標籤（顯示在大廳標題右側）
+   ::before 偽元素加上 👤 圖示 */
+.player-chip {
+  background: var(--color-primary);
+  border: 1px solid #1e4d8c;
+  border-radius: 50px;        /* 全圓角 pill 形 */
+  color: var(--color-o);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 12px;
+}
+.player-chip::before { content: '👤 '; }
+
+/* 大廳說明文字（「選擇房間加入，或建立自己的房間…」）*/
+.lobby-hint {
+  color: var(--color-text-dim);
+  font-size: 0.85rem;
+}
+
+/* 按鈕尺寸修飾符：小尺寸，用於大廳右上角的「建立房間」*/
+.btn-sm { padding: 8px 18px; font-size: 0.9rem; }
+
+/* ===== 房間列表容器 =====
+   Flexbox 垂直排列，每個房間卡片間有間距 */
+.room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ===== 單個房間卡片 =====
+   可點擊的橫向卡片，包含：圖示、建立者名稱、房間代碼、等待 badge
+   slideIn 動畫讓新房間出現時有淡入滑下效果 */
+.room-card {
+  background: var(--color-surface);
+  border: 1px solid #1e4d8c;
+  border-radius: var(--border-radius);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  /* 三種屬性同時過渡：邊框色、背景色、橫移位移 */
+  transition: border-color 0.2s, background-color 0.2s, transform 0.15s;
+  animation: slideIn 0.25s ease forwards;
+}
+/* 懸停：背景加深、邊框變亮藍、整張卡片向右微移 */
+.room-card:hover {
+  background: var(--color-primary);
+  border-color: var(--color-o);
+  transform: translateX(4px);
+}
+/* 鍵盤焦點：與 hover 相同的視覺回饋（無障礙）*/
+.room-card:focus-visible {
+  outline: 3px solid var(--color-o);
+  outline-offset: 2px;
+}
+
+/* 房間卡片出現動畫：從上方 8px 淡入 */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 房間卡片左側遊戲圖示 */
+.room-card-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0; /* 不壓縮，確保圖示固定大小 */
+}
+
+/* 房間資訊區塊（建立者名稱 + 等待時間）*/
+.room-card-info {
+  flex: 1;        /* 佔滿剩餘空間 */
+  min-width: 0;   /* 允許 text-overflow ellipsis 生效 */
+}
+
+/* 建立者暱稱（超長時截斷顯示 …）*/
+.room-card-host {
+  font-weight: 600;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 等待時間文字（「等待 X 秒前建立」）*/
+.room-card-meta {
+  font-size: 0.78rem;
+  color: var(--color-text-dim);
+  margin-top: 2px;
+}
+
+/* 房間代碼（等寬字體，青藍色醒目顯示）*/
+.room-card-code {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-o);
+  letter-spacing: 0.15em;
+  flex-shrink: 0;
+}
+
+/* ===== 等待中 Badge =====
+   顯示「● 等待中」，搭配 pulseDot 動畫表示房間活躍中 */
+.waiting-badge {
+  background: rgba(0, 212, 255, 0.12); /* 半透明青藍底 */
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 50px;
+  color: var(--color-o);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* 脈衝小圓點：透明度與縮放交替動畫，模擬心跳感 */
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--color-o);
+  border-radius: 50%;
+  animation: pulseDot 1.4s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.6); }
+}
+
+/* ===== 空列表提示 =====
+   當大廳沒有任何等待中的房間時顯示 */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.empty-icon { font-size: 3rem; }          /* 大型 emoji 圖示 */
+.empty-hint { font-size: 0.85rem; }       /* 鼓勵建立房間的提示文字 */
+
+/* ===== 舊有大廳樣式（divider / join-group / code-input 仍保留備用）===== */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-dim);
+  font-size: 0.85rem;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #1e4d8c;
+}
+
+.join-group {
+  display: flex;
+  gap: 8px;
+}
+
+.code-input {
+  flex: 1;
+  background: var(--color-primary);
+  border: 2px solid #1e4d8c;
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  padding: 10px 14px;
+  text-align: center;
+  text-transform: uppercase;
+  transition: border-color 0.2s;
+  width: 0;
+}
+.code-input::placeholder { letter-spacing: 0.05em; font-weight: 400; font-size: 0.9rem; }
+.code-input:focus { outline: none; border-color: var(--color-o); }
+
+.error-msg {
+  color: var(--color-x);
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  text-align: center;
+}
+
+/* ===== 按鈕 ===== */
+.btn {
+  padding: 12px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  width: 100%;
+  background-color: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(233, 69, 96, 0.4);
+}
+.btn-primary:hover {
+  background-color: #c73652;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(233, 69, 96, 0.5);
+}
+
+.btn-secondary {
+  background-color: var(--color-o);
+  color: #1a1a2e;
+}
+.btn-secondary:hover { background-color: #00b8d9; transform: translateY(-2px); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-dim);
+  border: 1px solid #1e4d8c;
+}
+.btn-ghost:hover { background: var(--color-primary); color: var(--color-text); }
+
+.btn:active { transform: translateY(0) !important; }
+.btn:focus-visible { outline: 3px solid var(--color-o); outline-offset: 3px; }
+
+/* ===== 等待畫面 ===== */
+.waiting-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.waiting-hint {
+  color: var(--color-text-dim);
+  font-size: 0.9rem;
+}
+
+.room-code-display {
+  font-size: clamp(2.4rem, 10vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: var(--color-o);
+  background: var(--color-primary);
+  padding: 16px 28px;
+  border-radius: var(--border-radius);
+  border: 2px solid #1e4d8c;
+  cursor: pointer;
+  user-select: all;
+  transition: background-color 0.2s;
+}
+.room-code-display:hover { background: var(--color-cell-hover); }
+.room-code-display::after {
+  content: ' 📋';
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+/* 旋轉等待動畫 */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #1e4d8c;
+  border-top-color: var(--color-o);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== 遊戲畫面：主容器 ===== */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 16px;
+}
+
+/* ===== 玩家標示列 ===== */
+.players-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.player-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 20px;
+  background: var(--color-surface);
+  border: 2px solid transparent;
+  border-radius: var(--border-radius);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  min-width: 90px;
+}
+
+/* 輪到此玩家時高亮邊框 */
+.player-badge.active-x { border-color: var(--color-x); box-shadow: 0 0 10px rgba(233,69,96,0.35); }
+.player-badge.active-o { border-color: var(--color-o); box-shadow: 0 0 10px rgba(0,212,255,0.35); }
+
+.player-mark {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+.player-mark.x { color: var(--color-x); }
+.player-mark.o { color: var(--color-o); }
+
+.player-label {
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.vs-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-dim);
+}
+
+/* ===== 狀態文字 ===== */
+.status {
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
+  color: var(--color-text-dim);
+  min-height: 1.5em;
+  transition: color 0.3s ease;
+}
+.status.x-turn   { color: var(--color-x); }
+.status.o-turn   { color: var(--color-o); }
+.status.winner   { color: var(--color-win-highlight); font-weight: 700; }
+.status.draw     { color: var(--color-text-dim); }
+.status.my-turn  { font-weight: 700; }
+
+/* ===== 棋盤：CSS Grid 3×3 ===== */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, var(--cell-size));
+  grid-template-rows: repeat(3, var(--cell-size));
+  gap: 10px;
+}
+
+/* ===== 單一格子 ===== */
+.cell {
+  background-color: var(--color-cell-bg);
+  border: 2px solid #1e4d8c;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: clamp(2rem, 8vw, 3.2rem);
+  font-weight: 700;
+  color: var(--color-text);
+  width: var(--cell-size);
+  height: var(--cell-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.cell:hover:not([disabled]) { background-color: var(--color-cell-hover); transform: scale(1.05); }
+.cell:focus-visible { outline: 3px solid var(--color-o); outline-offset: 2px; }
+.cell.x { color: var(--color-x); }
+.cell.o { color: var(--color-o); }
+
+/* 格子出現動畫 */
+.cell.marked {
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes popIn {
+  0%   { transform: scale(0.6); opacity: 0.4; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* 對手輪次時禁用游標提示 */
+.cell.not-your-turn { cursor: not-allowed; }
+
+/* ===== 獲勝格子高亮 ===== */
+.cell.winner {
+  background-color: var(--color-win-highlight);
+  color: #1a1a2e;
+  border-color: var(--color-win-highlight);
+  box-shadow: 0 0 16px 4px rgba(255, 215, 0, 0.6);
+  animation: winPulse 0.6s ease forwards;
+}
+@keyframes winPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.12); }
+  100% { transform: scale(1.07); }
+}
+
+/* ===== 遊戲結束按鈕區 ===== */
+.game-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.game-actions .btn { width: auto; }
+
+/* ===== Toast 通知 ===== */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: #2a2a4a;
+  color: var(--color-text);
+  border: 1px solid #1e4d8c;
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 100;
+  transition: opacity 0.4s, transform 0.4s;
+}
+.toast.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+}
+
+/* ===== 頁尾版權標示 =====
+   固定在頁面最底部，文字居中顯示版權與生成工具資訊 */
+.site-footer {
+  width: 100%;
+  padding: 12px 16px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--color-text-dim);   /* 低調灰色，不搶主畫面焦點 */
+  border-top: 1px solid #1e4d8c; /* 頂部細線區隔內容 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 頁尾連結：繼承文字色，hover 時亮藍 */
+.site-footer a {
+  color: var(--color-o);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.site-footer a:hover { color: #fff; }
+
+/* 項目分隔符「·」*/
+.footer-sep { opacity: 0.4; }
+

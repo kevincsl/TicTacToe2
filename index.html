@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>井字遊戲 Tic-Tac-Toe</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== 畫面 1：輸入暱稱 ===== -->
+  <section class="screen" id="screenName">
+    <div class="lobby-card">
+      <h1 class="title">井字遊戲</h1>
+      <p class="subtitle">選擇對戰模式開始遊戲</p>
+      <div class="name-form">
+        <label class="name-label" for="nameInput">輸入你的暱稱</label>
+        <input
+          class="name-input"
+          id="nameInput"
+          type="text"
+          maxlength="12"
+          placeholder="例：小明、Player1"
+          aria-label="暱稱"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="btn btn-primary" id="btnEnterLobby">繼續 →</button>
+        <p class="error-msg" id="nameError" role="alert" aria-live="assertive"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 畫面 2：選擇對戰模式 ===== -->
+  <section class="screen hidden" id="screenMode">
+    <div class="lobby-card">
+      <h1 class="title">井字遊戲</h1>
+      <p class="subtitle">選擇對戰模式</p>
+
+      <!-- 模式選擇格：兩欄 Grid，線上模式橫跨兩欄 -->
+      <div class="mode-grid" role="group" aria-label="對戰模式選擇">
+
+        <!-- AI 簡單模式：隨機落子，適合初學者 -->
+        <button class="btn-mode" id="btnAIEasy" aria-label="與 AI 對戰（簡單）">
+          <span class="mode-icon">🤖</span>
+          <span class="mode-label">AI 對戰</span>
+          <span class="mode-desc">簡單</span>
+        </button>
+
+        <!-- AI 困難模式：Minimax 演算法，幾乎無法擊敗 -->
+        <button class="btn-mode" id="btnAIHard" aria-label="與 AI 對戰（困難）">
+          <span class="mode-icon">🧠</span>
+          <span class="mode-label">AI 對戰</span>
+          <span class="mode-desc">困難</span>
+        </button>
+
+        <!-- 線上多人：進入公開大廳與真人對戰 -->
+        <button class="btn-mode btn-mode-online" id="btnOnline" aria-label="線上多人對奕">
+          <span class="mode-icon">🌐</span>
+          <span class="mode-label">線上多人對奕</span>
+          <span class="mode-desc">與真人對戰</span>
+        </button>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 畫面 3：公開大廳（房間列表）===== -->
+  <section class="screen hidden" id="screenPublicLobby">
+    <div class="public-lobby">
+
+      <div class="lobby-header">
+        <div class="lobby-header-left">
+          <!-- 返回模式選擇畫面 -->
+          <button class="btn btn-ghost btn-sm" id="btnBackToMode" aria-label="返回模式選擇">← 返回</button>
+          <h2 class="lobby-title">公開大廳</h2>
+          <span class="player-chip" id="myNameChip"></span>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btnCreateRoom">＋ 建立房間</button>
+      </div>
+
+      <p class="lobby-hint">選擇房間加入，或建立自己的房間等人挑戰</p>
+
+      <!-- 房間列表（即時更新）-->
+      <div class="room-list" id="roomList" aria-live="polite" aria-label="公開房間列表">
+        <!-- 由 JS 動態填入 -->
+      </div>
+
+      <!-- 空列表提示 -->
+      <div class="empty-state hidden" id="emptyState">
+        <div class="empty-icon">🎮</div>
+        <p>目前沒有開放的房間</p>
+        <p class="empty-hint">成為第一個建立房間的人吧！</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== 畫面 3：等待對手 ===== -->
+  <section class="screen hidden" id="screenWaiting">
+    <div class="lobby-card">
+      <h2 class="waiting-title">等待對手加入…</h2>
+      <p class="waiting-hint">你的房間已公開在大廳，等待挑戰者</p>
+      <div class="room-code-display" id="displayRoomCode" aria-label="房間代碼"></div>
+      <p class="waiting-hint" style="font-size:0.8rem">點擊代碼可複製，也可分享給朋友</p>
+      <div class="spinner" aria-hidden="true"></div>
+      <button class="btn btn-ghost" id="btnCancelWait">取消並回大廳</button>
+    </div>
+  </section>
+
+  <!-- ===== 畫面 4：遊戲 ===== -->
+  <section class="screen hidden" id="screenGame">
+    <main class="container">
+      <h1 class="title">井字遊戲</h1>
+
+      <!-- 玩家標示列 -->
+      <div class="players-bar">
+        <div class="player-badge" id="badgeX">
+          <span class="player-mark x">X</span>
+          <span class="player-label" id="labelX">玩家 X</span>
+        </div>
+        <div class="vs-label">VS</div>
+        <div class="player-badge" id="badgeO">
+          <span class="player-mark o">O</span>
+          <span class="player-label" id="labelO">玩家 O</span>
+        </div>
+      </div>
+
+      <!-- 回合狀態提示 -->
+      <p class="status" id="status" aria-live="polite">連線中…</p>
+
+      <!-- 棋盤 -->
+      <section class="board" id="board" role="grid" aria-label="井字棋盤">
+        <button class="cell" data-index="0" role="gridcell" aria-label="格子 1" tabindex="0"></button>
+        <button class="cell" data-index="1" role="gridcell" aria-label="格子 2" tabindex="0"></button>
+        <button class="cell" data-index="2" role="gridcell" aria-label="格子 3" tabindex="0"></button>
+        <button class="cell" data-index="3" role="gridcell" aria-label="格子 4" tabindex="0"></button>
+        <button class="cell" data-index="4" role="gridcell" aria-label="格子 5" tabindex="0"></button>
+        <button class="cell" data-index="5" role="gridcell" aria-label="格子 6" tabindex="0"></button>
+        <button class="cell" data-index="6" role="gridcell" aria-label="格子 7" tabindex="0"></button>
+        <button class="cell" data-index="7" role="gridcell" aria-label="格子 8" tabindex="0"></button>
+        <button class="cell" data-index="8" role="gridcell" aria-label="格子 9" tabindex="0"></button>
+      </section>
+
+      <!-- 遊戲結束操作區 -->
+      <div class="game-actions hidden" id="gameActions">
+        <button class="btn btn-primary" id="btnRematch">再來一局 🔄</button>
+        <button class="btn btn-ghost"   id="btnBackLobby">回大廳</button>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== Toast 即時通知（斷線、再戰邀請等提示）===== -->
+  <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ===== 頁尾版權標示 ===== -->
+  <footer class="site-footer">
+    <span>&#x1F12F; Copyleft</span>
+    <a href="https://mirai.tw" target="_blank" rel="noopener noreferrer">mirai.tw</a>
+    <span class="footer-sep">·</span>
+    <span>CoPilot-Cli generated</span>
+  </footer>
+
+  <!-- Socket.io 客戶端函式庫（由 Express 伺服器自動提供於 /socket.io/socket.io.js）-->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- 遊戲主要邏輯 -->
+  <script src="script.js"></script>
+</body>
+</html>
